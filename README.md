@@ -15,7 +15,7 @@ As to *why* would you want something like that, it's really up to you. `org-dail
 
 So, you type `M-x org-daily` (you probably will bind it to a comfortable key). A transient UI will appear.
 
-![Org Daily transient](transient.png)
+[<img src="./transient.png" width="300" />](./transient.png)
 
 I tried very hard to make the transient self-explanatory, so you can just play around. For now, let's type `a` to select the `New heading` quick action, and then `.` for today (we use the dot because that's the Emacs standard binding for today, as in the calendar and agenda). So you end up in a buffer showing this:
 
