@@ -521,8 +521,8 @@ subtree is pasted at DATE."
                   (org-element-at-point)))
                (txt
                 (buffer-substring
-                 (org-element-begin element)
-                 (org-element-end element))))
+                 (org-element-property :begin element)
+                 (org-element-property :end element))))
      (and (not keep) (org-cut-subtree))
      (with-current-buffer (find-file-noselect (org-daily-file))
        (org-with-wide-buffer
@@ -796,7 +796,7 @@ Interactively, START and END are picked using `org-read-date'."
   "Narrow to dates for current week in Org Daily file."
   (interactive)
   (let* ((index-today (calendar-day-of-week (calendar-current-date)))
-         (date-start (org-daily-return-iso-date :day (- (- index-today calendar-week-start-day))))
+         (date-start (org-daily-return-iso-date :day (- (mod (- index-today calendar-week-start-day) 7))))
          (date-end (org-daily-return-iso-date :start-date date-start :day +6)))
     (org-daily-show-range date-start date-end)))
 
