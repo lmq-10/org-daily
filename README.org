@@ -191,8 +191,8 @@ The first line of the transient shows the current date in ISO format.
 You can change the format by customizing the variable
 ~org-daily-main-description-date-format~.
 
-When you are seeing current day in ~org-daily-file~, the header line
-will let you know it.  That way you don't get lost while browsing your
+When you are seeing current day in your journal, the header line will
+let you know it.  That way you don't get lost while browsing your
 entries.
 
 *** Quick action manager
@@ -252,11 +252,11 @@ Optionally, you can add a target for yesterday (~org-daily-yesterday~)
 by customizing the variable ~org-daily-transient-include-yesterday~.
 
 By using a jump target, you'll visit the ~org-daily-file~ (unless you
-have customized the ~org-daily-all-files~ variable, in which case
-there are special rules; [[#using-multiple-files][Using multiple files]]), and the buffer will be
-narrowed to the desired date.  All subheadings will be made visible,
-and point will be relocated to the start of the subtree.  The date
-heading will be created if it doesn't exist.
+have customized the ~org-daily-all-files~ variable; [[#using-multiple-files][Using multiple
+files]]), and the buffer will be narrowed to the desired date.  All
+subheadings will be made visible, and point will be relocated to the
+start of the subtree.  The date heading will be created if it doesn't
+exist.
 
 All jump targets can be chained with an action, which will be executed
 at the chosen date; [[#transient-quick-action-manager][Quick action manager]].
@@ -290,11 +290,10 @@ in your date tree.  By default, there are three:
   twice using ~org-read-date~.
 
 By using a review target, you'll visit the ~org-daily-file~ (unless
-you have customized the ~org-daily-all-files~ variable, in which case
-there are special rules; [[#using-multiple-files][Using multiple files]]), and the buffer will be
-narrowed to the desired dates (which are always contiguous).  All
-subheadings will be unfolded, and point will be relocated to the start
-of the visible buffer.
+you have customized the ~org-daily-all-files~ variable; [[#using-multiple-files][Using multiple
+files]]), and the buffer will be narrowed to the desired dates (which
+are always contiguous).  All subheadings will be unfolded, and point
+will be relocated to the start of the visible buffer.
 
 *** Search commands
 :PROPERTIES:
@@ -392,8 +391,8 @@ file.
 
 Pay attention to the description!  It always displays the file you'll
 act on.  If you *don't* press =f= manually, then it will always be the
-one set in ~org-daily-file~, *unless* you currently are in one of the
-other files defined in ~org-daily-all-files~.  This is intuitive; if
+first file in ~org-daily-all-files~, *unless* you currently are in one
+of the other files defined in that variable.  This is intuitive; if
 you are visiting one of those files, you most likely want to act on
 that file.  Otherwise, it would be annoying to move around ([[#transient-movement-commands][Movement
 commands]]).
@@ -405,23 +404,23 @@ commands]]).
 
 #+cindex: Moving subtrees around
 When point is located inside an Org subtree (it doesn't need to be in
-~org-daily-file~, it can be any Org buffer), then the transient will
+your main file, it can be any Org buffer), then the transient will
 show two special commands that let you refile (i.e. move) that subtree
-to any day in ~org-daily-file~.
+to any day in your journal.
 
 #+findex: org-daily-refile
 - {refile to} one day... (w) [ ~org-daily-refile~ ] :: Move this
-  subtree to a date in ~org-daily-file~.  You'll be prompted for the
+  subtree to a date in Org Daily file.  You'll be prompted for the
   date.
 
 By pressing =w=, you'll be prompted for a date using ~org-read-date~.
-The subtree will be refiled to the heading in ~org-daily-file~
+The subtree will be refiled to the heading in the journal
 corresponding to the date you picked.
 
 By default, you'll be asked whether you want to keep the original
 subtree; if you answer =n=, the original subtree will be deleted.
 Additionally, you'll be asked whether you want to schedule the
-subtree; if you answer =y=, the subtree copy in ~org-daily-file~ will
+subtree; if you answer =y=, the subtree copy in the target file will
 also be scheduled to the date you picked.  This is useful if you want
 to integrate the file in your agenda.
 
@@ -430,7 +429,7 @@ after the refiling has been done.  [[#customizing-refiling-behavior][Customizing
 
 #+findex: org-daily-refile-to-dates
 - {refile to} several days... (W) [ ~org-daily-refile-to-dates~ ] :: Copy
-  this subtree to multiple dates in ~org-daily-file~.  You'll be
+  this subtree to multiple dates in the Org Daily file.  You'll be
   prompted for the starting date, ending date and span.
 
 By pressing =W= (capital =w=), you'll be able to refile the subtree to
@@ -453,10 +452,10 @@ date has to be *after* the ending date, otherwise the ending date will
 never be reached and thus the function will continue copying the
 subtree ad infinitum).
 
-If the starting date is equal to the date at point in
-~org-daily-file~, then the real starting date will be the next one
-according to the span (because it would not make sense to copy the
-subtree to the same place it is now).
+If the starting date is equal to the date for current subtree, then
+the real starting date will be the next one according to the span
+(because it would not make sense to copy the subtree to the same place
+it is now).
 
 If you call ~org-daily-refile-to-dates~ with a prefix argument (in the
 transient, press =C-u= before =W=), you won't be prompted for an
@@ -485,7 +484,7 @@ section with movement commands will be shown.
 These commands are similar to jump targets ([[#transient-jump-targets][Jump targets]]).  However,
 unlike those, they end in a date that depends on the date at point;
 that is, the date subtree where point is located in.  That's the
-reason why they are shown only in ~org-daily-file~.
+reason why they are shown only in an Org Daily file.
 
 So, =p= takes you to the previous date in the date tree, and =n= takes
 you to the next one.  These commands do not exit the transient, so you
@@ -587,9 +586,9 @@ and refiling process]].
 
 Once you start using Org Daily, you'll notice that most of the time
 the date prompts for regular Org commands (such as ~org-schedule~ and
-~org-deadline~) are not really smart enough.  They offer current day
-as default, but you normally want to use the date corresponding to the
-subtree at point, or at least to a date relative to that date.
+~org-deadline~) are not smart enough.  They offer current day as
+default, but you normally want to use the date corresponding to the
+subtree at point, or at least a date relative to that one.
 
 #+findex: org-daily-override-date-mode
 Org Daily offers a solution.  It's called
@@ -748,18 +747,18 @@ them.  The normal hook ~org-daily-before-refile-hook~ runs before
 refiling.  The abnormal hook ~org-daily-after-refile-functions~ runs
 after refiling, with point at the created subtree in the target date.
 
-~org-daily-after-refile-functions~ is specially interesting.  All
+~org-daily-after-refile-functions~ is of special interest.  All
 functions in this hook get called with a single argument, the target
-date in ISO format.  You can use it for many things; by default, it is
-used to schedule items when the user requests it ([[#customizing-refiling-behavior][Customizing refiling
-behavior]]).
+date in ISO format.  You can use the hook for many things; by default,
+it is used to schedule items when the user requests it ([[#customizing-refiling-behavior][Customizing
+refiling behavior]]).
 
 Personally, I often copy tasks from my task list into my journal
 (which acts as a daily planner, though I use several files for
 different purposes; [[#using-multiple-files][Using multiple files]]) in order to work on them.
-The tasks can have any TODO state originally, but I prefer all the
-tasks in my journal having the TODO keyword specifically.  So I have a
-custom function which changes the TODO state:
+The tasks can have any TODO state in the source file, but I prefer all
+the tasks in my journal having the TODO keyword specifically.  So I
+have a custom function which changes the TODO state:
 
 #+begin_src emacs-lisp
 (defun my/org-daily-after-refile-fix (_date)
@@ -810,7 +809,7 @@ so:
 
 The downside of using the commands directly is that you lose the
 ability to switch to other files on-demand ([[#using-multiple-files][Using multiple files]]) and
-invoking custom actions ([[#transient-quick-action-manager][Quick action manager]]).  You can circumvent
+to invoke custom actions ([[#transient-quick-action-manager][Quick action manager]]).  You can circumvent
 these limitations by using your own functions; [[#creating-your-own-functions][Creating your own
 functions]].
 
@@ -974,6 +973,10 @@ dynamic, so unlike the transient, the capture template will always
 point to the same file.  If you want to use multiple files, you'll
 have to manually create several capture templates and hard-code the
 path for all of them.
+
+** Can I go to an Org Daily entry using the Emacs calendar?
+
+Yes, with the command ~org-daily-jump-from-calendar~.
 
 ** Why are blank lines inserted before every heading I refile or create?
 
@@ -1497,5 +1500,3 @@ to permit their use in free software.
 :END:
 
 #+html: -->
-
-* Footnotes
