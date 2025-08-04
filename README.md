@@ -36,7 +36,7 @@ At any time, from anywhere, you can jump to current day with `<KEY> .` (with `<K
 
 You can jump to the entry for any past (or future, though that's hardly useful for a journal!) date with `<KEY> d`. You can also create a heading for any date using a binding you can already imagine: `<KEY> a d`. And you can quickly navigate between dates in your file with `<KEY> n` and `<KEY> p`.
 
-An important thing is searching: you can invoke occur with `<KEY> o` (if you don't know occur, you should learn it, it's great!). And, as all your entries are located in a single file, you can also use the amazing and underrated org-sparse-tree with `<KEY> /`.
+An important thing is searching: you can invoke occur with `<KEY> o` (if you don't know occur, you should learn it, it's great!). And, as all your entries are located in a single file, you can also use the amazing and underrated `org-sparse-tree` with `<KEY> /`.
 
 You can keep exploring the transient, but that's really all you need to know for journaling.
 
