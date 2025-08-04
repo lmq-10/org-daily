@@ -1,0 +1,1501 @@
+#+title: org-daily: maintain a journal in a single Org file
+#+author: Lucas Quintana
+#+email: lmq10@protonmail.com
+#+language: en
+#+options: ':t toc:nil author:t email:t num:t
+#+startup: content
+#+macro: stable-version 1.0.0
+#+macro: release-date 2025-08-03
+#+export_file_name: org-daily.texi
+#+texinfo_filename: org-daily.info
+#+texinfo_dir_category: Emacs misc features
+#+texinfo_dir_title: Org Daily: (org-daily)
+#+texinfo_dir_desc: Maintain a journal in a single Org file
+#+texinfo_header: @set MAINTAINER Lucas Quintana
+#+texinfo_header: @set MAINTAINEREMAIL @email{lmq10@protonmail.com}
+#+texinfo_header: @set MAINTAINERCONTACT @uref{mailto:lmq10@protonmail.com,contact the maintainer}
+
+#+texinfo: @insertcopying
+
+This manual, written by Lucas Quintana, describes the customization
+options for the Emacs package called ~org-daily~ (or =org-daily.el=),
+and provides every other piece of information pertinent to it.
+
+The documentation furnished herein corresponds to stable version
+{{{stable-version}}}, released on {{{release-date}}}.
+
+#+toc: headlines 8
+
+* COPYING
+:PROPERTIES:
+:COPYING: t
+:END:
+
+Copyright (C) 2025  Lucas Quintana
+
+#+begin_quote
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3 or
+any later version published by the Free Software Foundation; with no
+Invariant Sections, no Front-Cover Texts and no Back-Cover Texts.  A
+copy of the license is included in the section entitled “GNU Free
+Documentation License.”
+#+end_quote
+
+* Overview
+
+This package provides a user-friendly way to create and maintain Org
+date trees.  A date tree, in case you haven't used one before, is an
+outline structure with years on the highest level, months as sublevels
+and then dates on the lowest level.  In short, it looks like this:
+
+#+begin_example
+​* 2025
+​** 2025-07 July
+​*** 2025-07-28 Monday
+​*** 2025-07-29 Tuesday
+#+end_example
+
+Date trees have been part of Org mode since 2009 thanks to the
+=org-datetree.el= library, but they are seldom used outside Org
+capture templates ([[info:org#Template elements][org#Template elements]]).  They have great
+potential though.  In order to showcase that, Org Daily implements a
+set of commands to browse them, as well as a transient UI which serves
+as an easy-to-use point of entry.  This way, you can easily use the
+power of date trees to maintain a journal (for instance).
+
+Although journaling is arguably the most appealing use case for this
+package, the abstraction of date trees is really versatile.  Don't
+limit yourself!  Org Daily allows you to create multiple files and
+switch between them on demand, so feel free to write, track or plan
+anything you want in as many places as you want.  As long as it makes
+sense for the task at hand to have an associated date, Org Daily is
+most likely a great choice for it.
+
+* Creating your first journal entry
+:PROPERTIES:
+:CUSTOM_ID: first-journal-entry
+:END:
+
+#+cindex: Getting started
+The only command you have to know in order to make use of this package
+is ~org-daily~.  You'll want to give it a comfortable binding, such as
+=C-c d=.
+
+Once called, ~org-daily~ will bring up a menu.  We'll call that menu
+“transient” from now on, because it's implemented using the
+=transient.el= library, the same one that powers Magit.  In order to
+pick an option from the menu, you can press the displayed key or use
+your mouse or touchscreen when available.
+
+The transient should be self-explanatory.  Feel free to play around
+and learn by doing.  That's what all of us like to do, am I right?
+
+Anyway, if you are confused about how would you create your first
+entry, just do the following:
+
+1. Press =a=.  The quick action “New heading” will be highlighted.
+
+2. Press =.= (the dot).  Why the dot?  Well, it's an Emacs convention
+   for current day.  It works similarly in the Org Agenda and the
+   Calendar.  Org Daily follows that convention.
+
+That's it.  You'll end up in a buffer showing something similar to
+this:
+
+#+begin_example
+​*** 2025-07-29 Tuesday
+​**** 
+#+end_example
+
+But, where are you, exactly?  The buffer is visiting the file set in
+the user variable ~org-daily-file~.  By default, it is
+=~/Documents/journal.org=.
+
+The buffer contains a date tree.  However, you don't see it all when
+you jump from the transient.  The buffer is narrowed to the current
+day ([[info:emacs#Narrowing][emacs#Narrowing]]), and so everything else becomes inaccesible.  In
+order to see the whole tree, type =C-x n w= (~widen~).
+
+Anyway, now that you have a canvas for the day, you can just write
+anything!  Record your thoughts, your progress with some project, your
+plans...  There are no limits!
+
+#+begin_example
+​*** 2025-07-29 Tuesday
+​**** Hello World!
+This is my first journal entry!
+#+end_example
+
+This is just a regular Org buffer, so you can use all Org features
+freely here.
+
+Congratulations, you just created your first entry!  Now, let's review
+how can you manage your new date tree using the powerful Org Daily
+transient.
+
+* Making use of the transient
+
+The main way of interacting with Org Daily is the transient invoked by
+the command ~org-daily~.  You can also bind the underlying commands
+directly ([[#advanced-usage][Advanced usage]]), but most users will prefer the immediate
+feedback and readily available help offered by the transient.
+
+** Fixed layout
+
+When you invoke the transient from outside your ~org-daily-file~ after
+a fresh install, it looks like this:
+
+#+begin_example
+Org Daily ― Today is 2025-07-29
+
+ a action (pick: New heading | New task)
+
+ . jump to today      k show this week
+ t jump to tomorrow   m show this month
+ d jump to day...     r show range...
+
+Search
+ o occur              / sparse tree
+
+ q quit
+#+end_example
+
+You'll notice some commands end with three dots.  These will prompt
+for one or more dates.
+
+Roughly speaking, you have the following divisions:
+
+- The header (Org Daily ― Today is...)
+
+- The quick action manager (action...)
+
+- The jump targets (jump...)
+
+- The review targets (show...)
+
+- The search commands
+
+- The quit shortcut
+
+All of them will be explained now.  Other commands only present when
+certain conditions are met are explained later; [[#transient-dynamic-layout][Dynamic layout]].
+
+*** The header
+:PROPERTIES:
+:CUSTOM_ID: transient-header
+:END:
+
+#+vindex: org-daily-main-description-date-format
+The first line of the transient shows the current date in ISO format.
+You can change the format by customizing the variable
+~org-daily-main-description-date-format~.
+
+When you are seeing current day in ~org-daily-file~, the header line
+will let you know it.  That way you don't get lost while browsing your
+entries.
+
+*** Quick action manager
+:PROPERTIES:
+:CUSTOM_ID: transient-quick-action-manager
+:END:
+
+#+cindex: Invoking an action on a specific date
+#+findex: org-daily-transient-set-quick-action
+Using the =a= key (~org-daily-transient-set-quick-action~) you can
+interact with the action manager.  There are two actions available
+out-of-the-box: “New heading” and “New task”.  When you start the
+transient, both will be displayed as normal text.  By pressing the =a=
+key, the first one will be highlighted.  By pressing it again, you'll
+cycle around the actions, until no more actions are available; then
+all will be displayed normally again.
+
+When an action is highlighted, it will be used by the next jump target
+([[#transient-jump-targets][Jump targets]]).  For instance, using the “New heading” action with the
+“jump to today” target, you'll jump to today's subtree and immediately
+create a new heading at the end.  This is what you did to create your
+first journal entry ([[#first-journal-entry][Creating your first journal entry]]).  But, as you
+may imagine already, you can do the same for tomorrow or for any other
+date, and it is also possible to create a heading with a TODO keyword
+instead.
+
+In order to stress that actions apply only to jump targets, all other
+commands in the transient become temporarily disabled when you press
+=a=.
+
+You can fully customize the actions available to you; see [[#changing-available-actions][Changing
+available actions]].
+
+*** Jump targets
+:PROPERTIES:
+:CUSTOM_ID: transient-jump-targets
+:END:
+
+In the transient there are several commands starting with “jump”.
+These are called jump targets, and allow you to go to a specific date
+in the date tree.  By default, there are three:
+
+#+findex: org-daily-today
+- jump to today (.) [ ~org-daily-today~ ] :: Go to the date
+  heading for current day.
+
+#+findex: org-daily-tomorrow
+- jump to tomorrow (t) [ ~org-daily-tomorrow~ ] :: Go to the date
+  heading for tomorrow.
+
+#+findex: org-daily-jump-to-day
+- jump to day... (d) [ ~org-daily-jump-to-day~ ] :: Go to the date
+  heading for any day; you'll be prompted using ~org-read-date~.
+
+#+vindex: org-daily-transient-include-yesterday
+Optionally, you can add a target for yesterday (~org-daily-yesterday~)
+by customizing the variable ~org-daily-transient-include-yesterday~.
+
+By using a jump target, you'll visit the ~org-daily-file~ (unless you
+have customized the ~org-daily-all-files~ variable, in which case
+there are special rules; [[#using-multiple-files][Using multiple files]]), and the buffer will be
+narrowed to the desired date.  All subheadings will be made visible,
+and point will be relocated to the start of the subtree.  The date
+heading will be created if it doesn't exist.
+
+All jump targets can be chained with an action, which will be executed
+at the chosen date; [[#transient-quick-action-manager][Quick action manager]].
+
+Remember that the ~org-read-date~ interface for jumping to a custom
+date is very powerful.  Notably, you can pick a date relatively (such
+as =-2= por two days prior to current day), move using the Shift key
+plus arrows, and click on a date with your mouse or touchscreen.
+[[info:org#The date/time
+ prompt][org#The date/time prompt]].
+
+*** Review targets
+:PROPERTIES:
+:CUSTOM_ID: transient-review-targets
+:END:
+
+In the transient there are several commands starting with “show”.
+These are called review targets, and allow you to see a range of dates
+in your date tree.  By default, there are three:
+
+- show this week (k) [ ~org-daily-show-week~ ] :: Show all the days
+  corresponding to current week.  All seven days will be displayed,
+  and will be created if they don't exist.  Week start can be
+  customized using the variable ~calendar-week-start-day~.
+
+- show this month (m) [ ~org-daily-show-month~ ] :: Show all the days
+  corresponding to current month.
+
+- show range... (r) [ ~org-daily-show-range~ ] :: Show all days
+  between two specific days (both inclusive).  You'll be prompted
+  twice using ~org-read-date~.
+
+By using a review target, you'll visit the ~org-daily-file~ (unless
+you have customized the ~org-daily-all-files~ variable, in which case
+there are special rules; [[#using-multiple-files][Using multiple files]]), and the buffer will be
+narrowed to the desired dates (which are always contiguous).  All
+subheadings will be unfolded, and point will be relocated to the start
+of the visible buffer.
+
+*** Search commands
+:PROPERTIES:
+:CUSTOM_ID: transient-search-commands
+:END:
+
+Org Daily offers two commands to search your journal: one based on
+~occur~, and the other one based on ~org-sparse-tree~.  As you can
+see, we don't reinvent the wheel here; we use existent Emacs
+facilities.
+
+#+findex: org-daily-occur
+- occur (o) [ ~org-daily-occur~ ] :: Call ~occur~ in your journal.
+  Narrowing is ignored.
+
+Occur generates a buffer with lines matching your query.  You can move
+between matches with =n= and =p=, and enter edit mode with =e=. [[info:emacs#Other Repeating Search][emacs#Other Repeating Search]].
+
+You may find sort of annoying that you can't actually see the date for
+every match unless you go to the buffer and scroll a little.  I find
+it annoying too, and thus there is a special command called
+~org-daily-occur-display-date~ (which you should bind in
+~occur-mode-map~) that prints the date name in the echo area.
+
+Note that ~org-daily-occur~ ignores narrowing, and so the search is
+always done in the whole file.  If you want to search while preserving
+your narrowing (for instance, you want to see matches in a range
+selected using a review target; [[#transient-review-targets][Review targets]]), you can call
+~occur~ directly, by default bound to =M-s o=.
+
+#+findex: org-daily-sparse-tree
+- sparse tree (/) [ ~org-daily-sparse-tree~ ] :: Call
+  ~org-sparse-tree~ in your journal.  Narrowing is ignored.
+
+Sparse trees are a killer feature of Org mode ([[info:org#Sparse Trees][org#Sparse Trees]]).
+Unfortunately, a lot of users are unaware of them.  In part this is
+because current trend goes towards splitting information in many
+files, and sparse trees only work in a single file.  Org Daily goes
+against the trend and promotes the use of singular, big files, and so
+sparse trees work perfectly with it.
+
+Using ~org-daily-sparse-tree~ allows you to show all TODO entries,
+entries with a specific TODO keyword, entries matching a tag or
+property, entries matching a regular expression, and much more.  Just
+try it out!
+
+Note that ~org-daily-sparse-tree~ ignores narrowing, and so the search
+is always done in the whole file.  If you want to match while
+preserving your narrowing (for instance, you want to see matches in a
+range selected using a review target; [[#transient-review-targets][Review targets]]), you can call
+~org-sparse-tree~ directly, by default bound to =C-c /=.
+
+*** Quit shortcut
+:PROPERTIES:
+:CUSTOM_ID: transient-quit-shortcut
+:END:
+
+Press =q= (~transient-quit-all~) to quit the transient.
+
+Useful after you reach your desired date by using movement commands
+([[#transient-movement-commands][Movement commands]]).
+
+** Dynamic layout
+:PROPERTIES:
+:CUSTOM_ID: transient-dynamic-layout
+:END:
+
+Some sections and commands in the transient will only be displayed if
+certain conditions are met.  They will be described now.
+
+*** File switcher
+:PROPERTIES:
+:CUSTOM_ID: transient-file-switcher
+:END:
+
+[ If you are not interested in using multiple files, skip this section ]
+
+If you've customized the user option ~org-daily-all-files~ ([[#using-multiple-files][Using
+multiple files]]), you'll see a file switcher between the header line
+and the action manager.  It looks like this:
+
+#+begin_example
+ f switch file (now: Journal)
+#+end_example
+
+#+findex: org-daily-transient-switch-file
+By pressing the =f= key (~org-daily-transient-switch-file~), you'll be
+prompted for one of the files in ~org-daily-all-files~.  The full path
+to every file will be displayed as a completion annotation.
+
+After picking a file, you'll be back at the transient.  The
+description for the file switcher will reflect your pick.  The next
+command you run inside the transient will be executed in the chosen
+file.
+
+Pay attention to the description!  It always displays the file you'll
+act on.  If you *don't* press =f= manually, then it will always be the
+one set in ~org-daily-file~, *unless* you currently are in one of the
+other files defined in ~org-daily-all-files~.  This is intuitive; if
+you are visiting one of those files, you most likely want to act on
+that file.  Otherwise, it would be annoying to move around ([[#transient-movement-commands][Movement
+commands]]).
+
+*** Refile commands
+:PROPERTIES:
+:CUSTOM_ID: transient-refile-commands
+:END:
+
+#+cindex: Moving subtrees around
+When point is located inside an Org subtree (it doesn't need to be in
+~org-daily-file~, it can be any Org buffer), then the transient will
+show two special commands that let you refile (i.e. move) that subtree
+to any day in ~org-daily-file~.
+
+#+findex: org-daily-refile
+- {refile to} one day... (w) [ ~org-daily-refile~ ] :: Move this
+  subtree to a date in ~org-daily-file~.  You'll be prompted for the
+  date.
+
+By pressing =w=, you'll be prompted for a date using ~org-read-date~.
+The subtree will be refiled to the heading in ~org-daily-file~
+corresponding to the date you picked.
+
+By default, you'll be asked whether you want to keep the original
+subtree; if you answer =n=, the original subtree will be deleted.
+Additionally, you'll be asked whether you want to schedule the
+subtree; if you answer =y=, the subtree copy in ~org-daily-file~ will
+also be scheduled to the date you picked.  This is useful if you want
+to integrate the file in your agenda.
+
+You can customize the questions asked, as well as the landing position
+after the refiling has been done.  [[#customizing-refiling-behavior][Customizing refiling behavior]].
+
+#+findex: org-daily-refile-to-dates
+- {refile to} several days... (W) [ ~org-daily-refile-to-dates~ ] :: Copy
+  this subtree to multiple dates in ~org-daily-file~.  You'll be
+  prompted for the starting date, ending date and span.
+
+By pressing =W= (capital =w=), you'll be able to refile the subtree to
+several dates at the same time, as long as they are separated by a
+regular span.  You'll be prompted for two dates using ~org-read-date~,
+corresponding to the first and last date where you want to copy the
+subtree.  Finally, you'll be prompted for the span.
+
+The span defines the time interval between every two individual days
+where the subtree will be copied to.  For instance, issuing =2d= means
+a copy will be created at the starting date, and then at every two
+days until the ending date is reached.  Note that the ending date may
+or may not have a copy.
+
+The span has the form [NUMBER][PERIOD].  Valid values for PERIOD are
+=d= (day), =w= (week), =m= (month) and =y= (year).  You can also
+prepend a minus sign, which implies moving backward in time instead of
+forward.  (If you want to use this last feature, then the starting
+date has to be *after* the ending date, otherwise the ending date will
+never be reached and thus the function will continue copying the
+subtree ad infinitum).
+
+If the starting date is equal to the date at point in
+~org-daily-file~, then the real starting date will be the next one
+according to the span (because it would not make sense to copy the
+subtree to the same place it is now).
+
+If you call ~org-daily-refile-to-dates~ with a prefix argument (in the
+transient, press =C-u= before =W=), you won't be prompted for an
+ending date.  Instead, you'll be prompted for a number of copies to
+do.  Then, the subtree will be copied to the starting date, and then
+to every next date according to the span, until the number of copies
+reaches the number you issued.
+
+*** Movement commands
+:PROPERTIES:
+:CUSTOM_ID: transient-movement-commands
+:END:
+
+If you call the transient while you are on ~org-daily-file~ (or any of
+the files in ~org-daily-all-files~ if you have customized it) then a
+section with movement commands will be shown.
+
+#+findex: org-daily-previous-day
+- {move to} previous day (p) [ ~org-daily-previous-day~ ] :: Go to the
+  entry for previous day.
+
+#+findex: org-daily-next-day
+- {move to} next day (n) [ ~org-daily-next-day~ ] :: Go to the
+  entry for next day.
+
+These commands are similar to jump targets ([[#transient-jump-targets][Jump targets]]).  However,
+unlike those, they end in a date that depends on the date at point;
+that is, the date subtree where point is located in.  That's the
+reason why they are shown only in ~org-daily-file~.
+
+So, =p= takes you to the previous date in the date tree, and =n= takes
+you to the next one.  These commands do not exit the transient, so you
+can keep pressing them in order to continue moving around the tree.
+
+* Customization
+
+Org Daily, as most Emacs packages, is very customizable.  Do =M-x
+customize-group RET org-daily RET= if you want to see all options.
+
+Some typical customizations will be described now.  Other, more
+advanced ones, are described later.  [[#advanced-usage][Advanced usage]].
+
+** Customizing the default file path
+:PROPERTIES:
+:CUSTOM_ID: customizing-org-daily-file
+:END:
+
+#+vindex: org-daily-file
+Your journal (to give it a name; remember to not limit yourself!) is
+located at the file set in ~org-daily-file~.  By default, it is
+=~/Documents/journal.org=, but you can change it to any location you
+want.
+
+You can use multiple files and switch between them on demand from the
+transient.  [[#using-multiple-files][Using multiple files]].
+
+** Customizing date format
+:PROPERTIES:
+:CUSTOM_ID: customizing-date-format
+:END:
+
+Date trees follow ISO format.  There is no way to change it; that's
+just their standard format, and it is what the underlying library
+expects.  However, we definitely can overlay a custom date format on
+top, just like Org does with ~org-timestamp-custom-formats~.
+
+#+vindex: org-daily-custom-date-formats
+In the case of Org Daily, the relevant variable is
+~org-daily-custom-date-formats~.  It should be a cons cell where the
+first element is the format for month headings and the second element
+is the format for day headings.  The syntax is the one used by
+~format-time-string~.
+
+#+findex: org-daily-custom-date-formats-mode
+In order to overlay the date format in your buffer, enable the
+~org-daily-custom-date-formats-mode~ minor mode.  You can do so
+automatically, for instance by hooking into the jump process:
+
+#+begin_src emacs-lisp
+(add-hook 'org-daily-after-jump-hook #'org-daily-custom-date-formats-mode)
+#+end_src
+
+#+vindex: org-daily-today-indicator
+In addition to overlaying the date, the mode also appends an indicator
+to today's entry, governed by the variable
+~org-daily-today-indicator~.
+
+You can also change the format for the header line of the ~org-daily~
+transient.  [[#transient-header][The header]].
+
+** Customizing refiling behavior
+:PROPERTIES:
+:CUSTOM_ID: customizing-refiling-behavior
+:END:
+
+Org Daily offers some very powerful commands for moving subtrees to
+any date; [[#transient-refile-commands][Refile commands]].  You can customize their behaviour to some
+extent with the following user variables.
+
+#+vindex: org-daily-refile-should-schedule
+- ~org-daily-refile-should-schedule~ :: Controls whether refile
+  commands should schedule the new subtrees to the target dates.  By
+  default, it is the symbol =ask=, which means prompt the user every
+  time.  Alternatively, it can be set to t (always schedule) or nil
+  (never schedule).  Note that scheduling only ever happens if
+  ~org-daily-refile-maybe-schedule~ is included in
+  ~org-daily-after-refile-functions~ (it is by default).
+
+#+vindex: org-daily-refile-should-keep-original
+- ~org-daily-refile-should-keep-original~ :: Controls whether the
+  original subtree should be kept after refiling.  By default, it is
+  the symbol =ask=, which means prompt the user every time.
+  Alternatively, it can be set to t (always keep) or nil (never keep).
+
+#+vindex: org-daily-refile-landing-pos
+- ~org-daily-refile-landing-pos~ :: Controls where to put point after
+  the refiling process finished.  By default, it is the symbold =old=,
+  which means keep it in the original position.  It can also be the
+  symbol =new=, which means move it to the target date.  This setting
+  is ignored by ~org-daily-refile-to-dates~, which always keeps point
+  at original position.
+
+Another important way of customizing the refile process is by running
+a set of functions before or after the process.  [[#hook-jump-refile][Hooking into the jump
+and refiling process]].
+
+** Customizing default date for prompts
+
+Once you start using Org Daily, you'll notice that most of the time
+the date prompts for regular Org commands (such as ~org-schedule~ and
+~org-deadline~) are not really smart enough.  They offer current day
+as default, but you normally want to use the date corresponding to the
+subtree at point, or at least to a date relative to that date.
+
+#+findex: org-daily-override-date-mode
+Org Daily offers a solution.  It's called
+~org-daily-override-date-mode~.  When enabled, this minor mode
+overrides some Org commands (such as ~org-deadline~) with other
+commands that do exactly the same, but with a date prompt that
+defaults to the date for subtree at point.
+
+You can enable it automatically, e.g. by doing:
+
+#+begin_src emacs-lisp
+(add-hook 'org-daily-after-jump-hook #'org-daily-override-date-mode)
+#+end_src
+
+* Advanced usage
+:PROPERTIES:
+:CUSTOM_ID: advanced-usage
+:END:
+
+At this stage you already know everything you need in order to manage
+your date tree effectively.  But there are still some features that
+may be of interest to you, specially if you are an advanced user.
+
+** Using multiple files
+:PROPERTIES:
+:CUSTOM_ID: using-multiple-files
+:END:
+
+#+vindex: org-daily-all-files
+One of the advantages of keeping your journal in a single file is that
+you can have multiple journals.  The easy way of doing it is by
+customizing the variable ~org-daily-all-files~.
+
+The use of this variable is better understood with an example:
+
+#+begin_src emacs-lisp
+(setq org-daily-all-files
+      '(("Journal" . "~/Documents/journal.org")
+        ("Day planning" . "~/Documents/days.org")
+        ("Happiness report" . "~/Documents/happiness.org")))
+#+end_src
+
+As you can see, it should be a list of cons cells.  The first element
+of every cons cell is a short string describing the file.  The second
+is the actual path to the file.
+
+Once you've set this variable, some things about Org Daily will
+change.  First of all, the transient will gain a new command which
+allows you to change the target file for the execution of a single
+command.  [[#transient-file-switcher][File switcher]].
+
+Another important change is that the default file where commands act
+on will not be ~org-daily-file~ anymore.  If you are visiting any file
+that is included in ~org-daily-all-files~, then that file will be the
+target for all commands.  If you are *not* visiting one, then the
+first file in ~org-daily-all-files~ will be taken as the default.
+~org-daily-file~ will be effectively ignored.
+
+The function ~org-daily-file~ always returns the full path to the file
+where commands will act upon.
+
+** Changing available actions
+:PROPERTIES:
+:CUSTOM_ID: changing-available-actions
+:END:
+
+You can quickly invoke an action on any date from the transient using
+the action manager ([[#transient-quick-action-manager][Quick action manager]]).  By default, there are two
+actions: “New heading” and “New task”.  You can easily create your own
+actions and add them to the manager.
+
+#+vindex: org-daily-quick-actions
+The variable storing the actions is ~org-daily-quick-actions~.  By
+default, its value is the following:
+
+#+begin_src emacs-lisp
+'(("New heading" . org-daily-quick-new-heading)
+  ("New task" . org-daily-quick-new-todo-heading))
+#+end_src
+
+As you can see, it should be a list of cons cells.  The first element
+of every cons cell is a short string describing the action.  The
+second is the actual function to run.
+
+In order to learn how to create actions, let's look at the definition
+for ~org-daily-quick-new-heading~.
+
+#+begin_src emacs-lisp
+(defun org-daily-quick-new-heading ()
+  "Go to `point-max' and insert a new Org heading."
+  (goto-char (point-max))
+  (org-insert-heading)
+  (org-daily-demote-if-colliding-with-date)
+  (recenter))
+#+end_src
+
+#+findex: org-daily-demote-if-colliding-with-date
+When the actions are run, the buffer is already narrowed, so going to
+~point-max~ just takes us to the end of the date tree.  We then call
+~org-insert-heading~.  However, inserting a new heading like that may
+create a heading of the same level of the date, and we don't want
+that.  That's why ~org-daily-demote-if-colliding-with-date~ comes to
+play: it demotes the heading when needed in order to make it a child
+of the date.  (We may have called ~org-insert-heading~ with a
+hard-coded LEVEL argument too, but I wanted to showcase that
+function).  Finally, we just recenter point in the window so we can
+easily find it.
+
+As you can see, actions are really simple.  So, let's write one!
+
+By default, ~org-journal~ (another Org extension that allows you to
+maintain a journal) creates entries with a simple timestamp at the
+start.  Here is an action that replicates such behavior:
+
+#+begin_src emacs-lisp
+(defun org-daily-quick-new-heading-with-time ()
+  "Go to `point-max' and insert a new Org heading with time."
+  (goto-char (point-max))
+  (org-insert-heading)
+  (org-daily-demote-if-colliding-with-date)
+  (insert (format-time-string "%R "))
+  (recenter))
+#+end_src
+
+You can add it to the list of actions with:
+
+#+begin_src emacs-lisp
+(add-to-list 'org-daily-quick-actions '("New heading with time" . org-daily-quick-new-heading-with-time))
+#+end_src
+
+That's it!  As these are real Emacs Lisp functions, actions can do
+anything you want.  You are not limited by any template system.
+
+But, of course, you can use Org Capture with Org Daily if you want.
+[[#daily-with-capture][Can I use Org Capture together with Org Daily?]]
+
+If you never use actions (for instance, if you are very happy with Org
+Capture), then you can disable them by setting
+~org-daily-quick-actions~ to nil.
+
+** Hooking into the jump and refiling process
+:PROPERTIES:
+:CUSTOM_ID: hook-jump-refile
+:END:
+
+#+vindex: org-daily-after-jump-hook
+After calling any jump command ([[#transient-jump-targets][Jump targets]]), the normal hook
+~org-daily-after-jump-hook~ will be run.  You can use this hook in
+order to set up some things in the buffer, such as enabling custom
+date formats ([[#customizing-date-format][Customizing date format]]).
+
+#+vindex: org-daily-before-refile-hook
+#+vindex: org-daily-after-refile-functions
+Refiling commands ([[#transient-refile-commands][Refile commands]]) also have hooks associated to
+them.  The normal hook ~org-daily-before-refile-hook~ runs before
+refiling.  The abnormal hook ~org-daily-after-refile-functions~ runs
+after refiling, with point at the created subtree in the target date.
+
+~org-daily-after-refile-functions~ is specially interesting.  All
+functions in this hook get called with a single argument, the target
+date in ISO format.  You can use it for many things; by default, it is
+used to schedule items when the user requests it ([[#customizing-refiling-behavior][Customizing refiling
+behavior]]).
+
+Personally, I often copy tasks from my task list into my journal
+(which acts as a daily planner, though I use several files for
+different purposes; [[#using-multiple-files][Using multiple files]]) in order to work on them.
+The tasks can have any TODO state originally, but I prefer all the
+tasks in my journal having the TODO keyword specifically.  So I have a
+custom function which changes the TODO state:
+
+#+begin_src emacs-lisp
+(defun my/org-daily-after-refile-fix (_date)
+  "Change TODO state for this item."
+  (when (org-element-property :todo-keyword (org-element-at-point))
+    (org-todo "TODO")))
+#+end_src
+
+I add it to the refile hook with:
+
+#+begin_src emacs-lisp
+(add-hook 'org-daily-after-refile-functions #'my/org-daily-after-refile-fix)
+#+end_src
+
+** Using Org Daily commands directly
+:PROPERTIES:
+:CUSTOM_ID: using-org-daily-commands-directly
+:END:
+
+You don't need to use the ~org-daily~ transient if you don't want to.
+You can use Org Daily as a regular Emacs package, binding individual
+commands to your liking.  Here is an example configuration for doing
+so:
+
+#+begin_src emacs-lisp
+(use-package org-daily
+  :bind (("C-c d d" . org-daily-today)
+         ("C-c d j" . org-daily-jump-to-day)
+         ("C-c d t" . org-daily-tomorrow)
+         ("C-c d y" . org-daily-yesterday)
+         ("C-c d w" . org-daily-refile)
+         ("C-c d W" . org-daily-refile-to-dates)
+         ("C-c d k" . org-daily-show-week)
+         ("C-c d m" . org-daily-show-month)
+         ("C-c d r" . org-daily-show-range)
+         ("C-c d o" . org-daily-occur)
+         ("C-c d /" . org-daily-sparse-tree)
+         ("C-c d n" . org-daily-next-day)
+         ("C-c d p" . org-daily-previous-day)
+         :repeat-map org-daily-movement-repeat-map
+         ("n" . org-daily-next-day)
+         ("p" . org-daily-previous-day)
+         :map occur-mode-map
+         ("d" . org-daily-occur-display-date)
+         :map calendar-mode-map
+         ("j" . org-daily-jump-from-calendar)))
+#+end_src
+
+The downside of using the commands directly is that you lose the
+ability to switch to other files on-demand ([[#using-multiple-files][Using multiple files]]) and
+invoking custom actions ([[#transient-quick-action-manager][Quick action manager]]).  You can circumvent
+these limitations by using your own functions; [[#creating-your-own-functions][Creating your own
+functions]].
+
+** Creating your own commands
+:PROPERTIES:
+:CUSTOM_ID: creating-your-own-functions
+:END:
+
+The last stage to hacking Org Daily is creating your own custom
+commands.  Before starting to do so, however, there are some caveats
+you should know about.
+
+There are some functions which are not intended to be called by
+external code.  These are internal, and have a double dash in its
+name.  For instance, ~org-daily--refile-subr~.  Of course, you can use
+them, but you should read and understand =org-daily.el= source code
+before doing so.
+
+Also, functions starting with ~org-daily-transient-~ should be used
+only in a transient definition.  Never call them as regular functions.
+In particular, don't call ~org-daily-transient-switch-file~ nor
+~org-daily-transient-set-quick-action~ from Lisp.
+
+Having said that, it's hacking time!
+
+We said previously ([[#using-org-daily-commands-directly][Using Org Daily commands directly]]) that using Org
+Daily commands directly implies losing the ability to switch to other
+files and invoking custom functions.  You can circumvent this by
+let-binding two special variables:
+
+#+vindex: org-daily-overriding-file
+- ~org-daily-overriding-file~ :: Overriding value for
+  ~org-daily-file~.  This will be returned unconditionally by the
+  function ~org-daily-file~.  Thus, you can use it to override the
+  file any command provided by Org Daily will use.
+
+#+vindex: org-daily-this-quick-action
+- ~org-daily-this-quick-action~ :: Quick action to run in the next
+  call to ~org-daily-jump-to-day~.  If you set it, you can control the
+  action that will be called by any jump command ([[#transient-jump-targets][Jump targets]]).  It
+  should be a cons cell.  If you don't call a transient while this
+  variable is let-bound, then the first element can simply be nil.
+  The second element is the action to run (it may or may not be
+  among ~org-daily-quick-actions~).
+
+[ *NOTE*: Never set the global value of these variables with ~setq~!
+Only use ~let~. ]
+
+By playing with these two variables in your own commands, you can do
+pretty much anything the ~org-daily~ transient can.  As a simple
+showcase, the following command prompts for a file among
+~org-daily-all-files~, and then creates a new heading at the end of
+any date you pick in that file.
+
+#+begin_src emacs-lisp
+(defun my/org-daily-jump-to-day-and-new-heading ()
+  "Pick a file, jump to a date, create a new heading."
+  (interactive)
+  (when-let* (;; Annotate with file path
+              (completion-extra-properties (list :annotation-function #'org-daily-annotate-file))
+              ;; Prompt for file
+              (file-pick (completing-read "File: " org-daily-all-files nil :require-match))
+              ;; Set overriding file
+              (org-daily-overriding-file (cdr (assoc file-pick org-daily-all-files)))
+              ;; Set custom action
+              (org-daily-this-quick-action (cons nil #'org-daily-quick-new-heading)))
+    ;; Call `org-daily-jump-to-day' using the crafted environment
+    (call-interactively #'org-daily-jump-to-day)))
+#+end_src
+
+Now, you are equipped with all the tools you need in order to make Org
+Daily truly yours.  You can even create your own transient containing
+only the commands you use!  That's left as an exercise for the reader
+(just look at the actual definition of ~org-daily~ if you need help).
+
+* Installation
+
+** VC installation
+
+You can install the package from source by evaluating the following
+code:
+
+#+begin_src elisp
+(package-vc-install
+ '(org-daily
+   :url "https://github.com/lmq-10/org-daily"
+   :doc "README.org"))
+#+end_src
+
+Alternatively, you can use the :vc keyword from use-package.
+
+** Manual installation
+:PROPERTIES:
+:CUSTOM_ID: manual-installation
+:END:
+
+Assuming your Emacs files are found in =~/.emacs.d/=, execute the
+following commands in a shell prompt:
+
+#+begin_src sh
+cd ~/.emacs.d
+
+# Create a directory for manually-installed packages
+mkdir manual-packages
+
+# Go to the new directory
+cd manual-packages
+
+# Clone this repo, naming it "org-daily"
+git clone https://github.com/lmq-10/org-daily org-daily
+#+end_src
+
+Finally, in your =init.el= (or equivalent) evaluate this:
+
+#+begin_src emacs-lisp
+;; Make Elisp files in that directory available to the user.
+(add-to-list 'load-path "~/.emacs.d/manual-packages/org-daily")
+#+end_src
+
+Everything is in place to set up the package.
+
+* Sample configuration
+:PROPERTIES:
+:CUSTOM_ID: sample-configuration
+:END:
+
+#+begin_src elisp
+(use-package org-daily
+  :ensure t
+  :bind
+  ;; Customize keybindings to your liking
+  (("C-c d" . org-daily)
+   ("C-c D" . org-daily-today)
+   :map calendar-mode-map
+   ("j" . org-daily-jump-from-calendar))
+   :map occur-mode-map
+   ("d" . org-daily-occur-display-date))
+#+end_src
+
+* Frequently Asked Questions
+
+** Can I use Org Capture together with Org Daily?
+:PROPERTIES:
+:CUSTOM_ID: daily-with-capture
+:END:
+
+Yes.  There is no code in ~org-daily~ for that, but date trees are
+already supported by Org.
+
+For instance, to create a new heading in current day:
+
+#+begin_src emacs-lisp
+(add-to-list 'org-capture-templates
+             `("j" "Journal" entry
+               (file+olp+datetree ,(org-daily-file))
+               "* %?"))
+#+end_src
+
+Note that the call to the ~org-daily-file~ function here is not
+dynamic, so unlike the transient, the capture template will always
+point to the same file.  If you want to use multiple files, you'll
+have to manually create several capture templates and hard-code the
+path for all of them.
+
+** Why are blank lines inserted before every heading I refile or create?
+
+This is an Org setting.  You can control whether blank lines are
+inserted by customizing the variable ~org-blank-before-new-entry~.
+Personally, I dislike these blank lines, and so in my configuration I
+have the following:
+
+#+begin_src emacs-lisp
+(setq org-blank-before-new-entry '((heading . nil) (plain-list-item . auto)))
+#+end_src
+
+** ~org-journal~ already exists, why create another package?
+
+I never used ~org-journal~.  I created a prototype of ~org-daily~ in
+2023, soon after learning Emacs.  I did not think about searching for
+available packages.  And even if I could have done it, I really like
+programming!
+
+By looking at the code of ~org-journal~, I see it has a lot of
+features and it also implements a lot of things on its own way.  I
+think (though I may be mistaken) that ~org-daily~ is a better Emacs
+citizen in the sense that it uses an already existent standard (Org
+date trees), as well as already existent tools such as ~occur~ and
+~org-sparse-tree~.  I'm not sure whether ~org-journal~ is still
+actively maintained; it doesn't seem to have had too much activity in
+the past years, but maybe that's because it is already stable?
+
+Anyway, I can't do a fair comparison because I'm too used to
+~org-daily~.  You should test them both in order to pick one.
+
+* Acknowledgements
+
+~org-daily~ is meant to be a collective effort.  Every bit of help
+matters.
+
++ Author/maintainer :: Lucas Quintana.
+
+* GNU Free Documentation License
+:PROPERTIES:
+:APPENDIX: t
+:END:
+
+#+texinfo: @include doclicense.texi
+
+#+begin_export html
+<pre>
+
+                GNU Free Documentation License
+                 Version 1.3, 3 November 2008
+
+
+ Copyright (C) 2000, 2001, 2002, 2007, 2008 Free Software Foundation, Inc.
+     <https://fsf.org/>
+ Everyone is permitted to copy and distribute verbatim copies
+ of this license document, but changing it is not allowed.
+
+0. PREAMBLE
+
+The purpose of this License is to make a manual, textbook, or other
+functional and useful document "free" in the sense of freedom: to
+assure everyone the effective freedom to copy and redistribute it,
+with or without modifying it, either commercially or noncommercially.
+Secondarily, this License preserves for the author and publisher a way
+to get credit for their work, while not being considered responsible
+for modifications made by others.
+
+This License is a kind of "copyleft", which means that derivative
+works of the document must themselves be free in the same sense.  It
+complements the GNU General Public License, which is a copyleft
+license designed for free software.
+
+We have designed this License in order to use it for manuals for free
+software, because free software needs free documentation: a free
+program should come with manuals providing the same freedoms that the
+software does.  But this License is not limited to software manuals;
+it can be used for any textual work, regardless of subject matter or
+whether it is published as a printed book.  We recommend this License
+principally for works whose purpose is instruction or reference.
+
+
+1. APPLICABILITY AND DEFINITIONS
+
+This License applies to any manual or other work, in any medium, that
+contains a notice placed by the copyright holder saying it can be
+distributed under the terms of this License.  Such a notice grants a
+world-wide, royalty-free license, unlimited in duration, to use that
+work under the conditions stated herein.  The "Document", below,
+refers to any such manual or work.  Any member of the public is a
+licensee, and is addressed as "you".  You accept the license if you
+copy, modify or distribute the work in a way requiring permission
+under copyright law.
+
+A "Modified Version" of the Document means any work containing the
+Document or a portion of it, either copied verbatim, or with
+modifications and/or translated into another language.
+
+A "Secondary Section" is a named appendix or a front-matter section of
+the Document that deals exclusively with the relationship of the
+publishers or authors of the Document to the Document's overall
+subject (or to related matters) and contains nothing that could fall
+directly within that overall subject.  (Thus, if the Document is in
+part a textbook of mathematics, a Secondary Section may not explain
+any mathematics.)  The relationship could be a matter of historical
+connection with the subject or with related matters, or of legal,
+commercial, philosophical, ethical or political position regarding
+them.
+
+The "Invariant Sections" are certain Secondary Sections whose titles
+are designated, as being those of Invariant Sections, in the notice
+that says that the Document is released under this License.  If a
+section does not fit the above definition of Secondary then it is not
+allowed to be designated as Invariant.  The Document may contain zero
+Invariant Sections.  If the Document does not identify any Invariant
+Sections then there are none.
+
+The "Cover Texts" are certain short passages of text that are listed,
+as Front-Cover Texts or Back-Cover Texts, in the notice that says that
+the Document is released under this License.  A Front-Cover Text may
+be at most 5 words, and a Back-Cover Text may be at most 25 words.
+
+A "Transparent" copy of the Document means a machine-readable copy,
+represented in a format whose specification is available to the
+general public, that is suitable for revising the document
+straightforwardly with generic text editors or (for images composed of
+pixels) generic paint programs or (for drawings) some widely available
+drawing editor, and that is suitable for input to text formatters or
+for automatic translation to a variety of formats suitable for input
+to text formatters.  A copy made in an otherwise Transparent file
+format whose markup, or absence of markup, has been arranged to thwart
+or discourage subsequent modification by readers is not Transparent.
+An image format is not Transparent if used for any substantial amount
+of text.  A copy that is not "Transparent" is called "Opaque".
+
+Examples of suitable formats for Transparent copies include plain
+ASCII without markup, Texinfo input format, LaTeX input format, SGML
+or XML using a publicly available DTD, and standard-conforming simple
+HTML, PostScript or PDF designed for human modification.  Examples of
+transparent image formats include PNG, XCF and JPG.  Opaque formats
+include proprietary formats that can be read and edited only by
+proprietary word processors, SGML or XML for which the DTD and/or
+processing tools are not generally available, and the
+machine-generated HTML, PostScript or PDF produced by some word
+processors for output purposes only.
+
+The "Title Page" means, for a printed book, the title page itself,
+plus such following pages as are needed to hold, legibly, the material
+this License requires to appear in the title page.  For works in
+formats which do not have any title page as such, "Title Page" means
+the text near the most prominent appearance of the work's title,
+preceding the beginning of the body of the text.
+
+The "publisher" means any person or entity that distributes copies of
+the Document to the public.
+
+A section "Entitled XYZ" means a named subunit of the Document whose
+title either is precisely XYZ or contains XYZ in parentheses following
+text that translates XYZ in another language.  (Here XYZ stands for a
+specific section name mentioned below, such as "Acknowledgements",
+"Dedications", "Endorsements", or "History".)  To "Preserve the Title"
+of such a section when you modify the Document means that it remains a
+section "Entitled XYZ" according to this definition.
+
+The Document may include Warranty Disclaimers next to the notice which
+states that this License applies to the Document.  These Warranty
+Disclaimers are considered to be included by reference in this
+License, but only as regards disclaiming warranties: any other
+implication that these Warranty Disclaimers may have is void and has
+no effect on the meaning of this License.
+
+2. VERBATIM COPYING
+
+You may copy and distribute the Document in any medium, either
+commercially or noncommercially, provided that this License, the
+copyright notices, and the license notice saying this License applies
+to the Document are reproduced in all copies, and that you add no
+other conditions whatsoever to those of this License.  You may not use
+technical measures to obstruct or control the reading or further
+copying of the copies you make or distribute.  However, you may accept
+compensation in exchange for copies.  If you distribute a large enough
+number of copies you must also follow the conditions in section 3.
+
+You may also lend copies, under the same conditions stated above, and
+you may publicly display copies.
+
+
+3. COPYING IN QUANTITY
+
+If you publish printed copies (or copies in media that commonly have
+printed covers) of the Document, numbering more than 100, and the
+Document's license notice requires Cover Texts, you must enclose the
+copies in covers that carry, clearly and legibly, all these Cover
+Texts: Front-Cover Texts on the front cover, and Back-Cover Texts on
+the back cover.  Both covers must also clearly and legibly identify
+you as the publisher of these copies.  The front cover must present
+the full title with all words of the title equally prominent and
+visible.  You may add other material on the covers in addition.
+Copying with changes limited to the covers, as long as they preserve
+the title of the Document and satisfy these conditions, can be treated
+as verbatim copying in other respects.
+
+If the required texts for either cover are too voluminous to fit
+legibly, you should put the first ones listed (as many as fit
+reasonably) on the actual cover, and continue the rest onto adjacent
+pages.
+
+If you publish or distribute Opaque copies of the Document numbering
+more than 100, you must either include a machine-readable Transparent
+copy along with each Opaque copy, or state in or with each Opaque copy
+a computer-network location from which the general network-using
+public has access to download using public-standard network protocols
+a complete Transparent copy of the Document, free of added material.
+If you use the latter option, you must take reasonably prudent steps,
+when you begin distribution of Opaque copies in quantity, to ensure
+that this Transparent copy will remain thus accessible at the stated
+location until at least one year after the last time you distribute an
+Opaque copy (directly or through your agents or retailers) of that
+edition to the public.
+
+It is requested, but not required, that you contact the authors of the
+Document well before redistributing any large number of copies, to
+give them a chance to provide you with an updated version of the
+Document.
+
+
+4. MODIFICATIONS
+
+You may copy and distribute a Modified Version of the Document under
+the conditions of sections 2 and 3 above, provided that you release
+the Modified Version under precisely this License, with the Modified
+Version filling the role of the Document, thus licensing distribution
+and modification of the Modified Version to whoever possesses a copy
+of it.  In addition, you must do these things in the Modified Version:
+
+A. Use in the Title Page (and on the covers, if any) a title distinct
+   from that of the Document, and from those of previous versions
+   (which should, if there were any, be listed in the History section
+   of the Document).  You may use the same title as a previous version
+   if the original publisher of that version gives permission.
+B. List on the Title Page, as authors, one or more persons or entities
+   responsible for authorship of the modifications in the Modified
+   Version, together with at least five of the principal authors of the
+   Document (all of its principal authors, if it has fewer than five),
+   unless they release you from this requirement.
+C. State on the Title page the name of the publisher of the
+   Modified Version, as the publisher.
+D. Preserve all the copyright notices of the Document.
+E. Add an appropriate copyright notice for your modifications
+   adjacent to the other copyright notices.
+F. Include, immediately after the copyright notices, a license notice
+   giving the public permission to use the Modified Version under the
+   terms of this License, in the form shown in the Addendum below.
+G. Preserve in that license notice the full lists of Invariant Sections
+   and required Cover Texts given in the Document's license notice.
+H. Include an unaltered copy of this License.
+I. Preserve the section Entitled "History", Preserve its Title, and add
+   to it an item stating at least the title, year, new authors, and
+   publisher of the Modified Version as given on the Title Page.  If
+   there is no section Entitled "History" in the Document, create one
+   stating the title, year, authors, and publisher of the Document as
+   given on its Title Page, then add an item describing the Modified
+   Version as stated in the previous sentence.
+J. Preserve the network location, if any, given in the Document for
+   public access to a Transparent copy of the Document, and likewise
+   the network locations given in the Document for previous versions
+   it was based on.  These may be placed in the "History" section.
+   You may omit a network location for a work that was published at
+   least four years before the Document itself, or if the original
+   publisher of the version it refers to gives permission.
+K. For any section Entitled "Acknowledgements" or "Dedications",
+   Preserve the Title of the section, and preserve in the section all
+   the substance and tone of each of the contributor acknowledgements
+   and/or dedications given therein.
+L. Preserve all the Invariant Sections of the Document,
+   unaltered in their text and in their titles.  Section numbers
+   or the equivalent are not considered part of the section titles.
+M. Delete any section Entitled "Endorsements".  Such a section
+   may not be included in the Modified Version.
+N. Do not retitle any existing section to be Entitled "Endorsements"
+   or to conflict in title with any Invariant Section.
+O. Preserve any Warranty Disclaimers.
+
+If the Modified Version includes new front-matter sections or
+appendices that qualify as Secondary Sections and contain no material
+copied from the Document, you may at your option designate some or all
+of these sections as invariant.  To do this, add their titles to the
+list of Invariant Sections in the Modified Version's license notice.
+These titles must be distinct from any other section titles.
+
+You may add a section Entitled "Endorsements", provided it contains
+nothing but endorsements of your Modified Version by various
+parties--for example, statements of peer review or that the text has
+been approved by an organization as the authoritative definition of a
+standard.
+
+You may add a passage of up to five words as a Front-Cover Text, and a
+passage of up to 25 words as a Back-Cover Text, to the end of the list
+of Cover Texts in the Modified Version.  Only one passage of
+Front-Cover Text and one of Back-Cover Text may be added by (or
+through arrangements made by) any one entity.  If the Document already
+includes a cover text for the same cover, previously added by you or
+by arrangement made by the same entity you are acting on behalf of,
+you may not add another; but you may replace the old one, on explicit
+permission from the previous publisher that added the old one.
+
+The author(s) and publisher(s) of the Document do not by this License
+give permission to use their names for publicity for or to assert or
+imply endorsement of any Modified Version.
+
+
+5. COMBINING DOCUMENTS
+
+You may combine the Document with other documents released under this
+License, under the terms defined in section 4 above for modified
+versions, provided that you include in the combination all of the
+Invariant Sections of all of the original documents, unmodified, and
+list them all as Invariant Sections of your combined work in its
+license notice, and that you preserve all their Warranty Disclaimers.
+
+The combined work need only contain one copy of this License, and
+multiple identical Invariant Sections may be replaced with a single
+copy.  If there are multiple Invariant Sections with the same name but
+different contents, make the title of each such section unique by
+adding at the end of it, in parentheses, the name of the original
+author or publisher of that section if known, or else a unique number.
+Make the same adjustment to the section titles in the list of
+Invariant Sections in the license notice of the combined work.
+
+In the combination, you must combine any sections Entitled "History"
+in the various original documents, forming one section Entitled
+"History"; likewise combine any sections Entitled "Acknowledgements",
+and any sections Entitled "Dedications".  You must delete all sections
+Entitled "Endorsements".
+
+
+6. COLLECTIONS OF DOCUMENTS
+
+You may make a collection consisting of the Document and other
+documents released under this License, and replace the individual
+copies of this License in the various documents with a single copy
+that is included in the collection, provided that you follow the rules
+of this License for verbatim copying of each of the documents in all
+other respects.
+
+You may extract a single document from such a collection, and
+distribute it individually under this License, provided you insert a
+copy of this License into the extracted document, and follow this
+License in all other respects regarding verbatim copying of that
+document.
+
+
+7. AGGREGATION WITH INDEPENDENT WORKS
+
+A compilation of the Document or its derivatives with other separate
+and independent documents or works, in or on a volume of a storage or
+distribution medium, is called an "aggregate" if the copyright
+resulting from the compilation is not used to limit the legal rights
+of the compilation's users beyond what the individual works permit.
+When the Document is included in an aggregate, this License does not
+apply to the other works in the aggregate which are not themselves
+derivative works of the Document.
+
+If the Cover Text requirement of section 3 is applicable to these
+copies of the Document, then if the Document is less than one half of
+the entire aggregate, the Document's Cover Texts may be placed on
+covers that bracket the Document within the aggregate, or the
+electronic equivalent of covers if the Document is in electronic form.
+Otherwise they must appear on printed covers that bracket the whole
+aggregate.
+
+
+8. TRANSLATION
+
+Translation is considered a kind of modification, so you may
+distribute translations of the Document under the terms of section 4.
+Replacing Invariant Sections with translations requires special
+permission from their copyright holders, but you may include
+translations of some or all Invariant Sections in addition to the
+original versions of these Invariant Sections.  You may include a
+translation of this License, and all the license notices in the
+Document, and any Warranty Disclaimers, provided that you also include
+the original English version of this License and the original versions
+of those notices and disclaimers.  In case of a disagreement between
+the translation and the original version of this License or a notice
+or disclaimer, the original version will prevail.
+
+If a section in the Document is Entitled "Acknowledgements",
+"Dedications", or "History", the requirement (section 4) to Preserve
+its Title (section 1) will typically require changing the actual
+title.
+
+
+9. TERMINATION
+
+You may not copy, modify, sublicense, or distribute the Document
+except as expressly provided under this License.  Any attempt
+otherwise to copy, modify, sublicense, or distribute it is void, and
+will automatically terminate your rights under this License.
+
+However, if you cease all violation of this License, then your license
+from a particular copyright holder is reinstated (a) provisionally,
+unless and until the copyright holder explicitly and finally
+terminates your license, and (b) permanently, if the copyright holder
+fails to notify you of the violation by some reasonable means prior to
+60 days after the cessation.
+
+Moreover, your license from a particular copyright holder is
+reinstated permanently if the copyright holder notifies you of the
+violation by some reasonable means, this is the first time you have
+received notice of violation of this License (for any work) from that
+copyright holder, and you cure the violation prior to 30 days after
+your receipt of the notice.
+
+Termination of your rights under this section does not terminate the
+licenses of parties who have received copies or rights from you under
+this License.  If your rights have been terminated and not permanently
+reinstated, receipt of a copy of some or all of the same material does
+not give you any rights to use it.
+
+
+10. FUTURE REVISIONS OF THIS LICENSE
+
+The Free Software Foundation may publish new, revised versions of the
+GNU Free Documentation License from time to time.  Such new versions
+will be similar in spirit to the present version, but may differ in
+detail to address new problems or concerns.  See
+https://www.gnu.org/licenses/.
+
+Each version of the License is given a distinguishing version number.
+If the Document specifies that a particular numbered version of this
+License "or any later version" applies to it, you have the option of
+following the terms and conditions either of that specified version or
+of any later version that has been published (not as a draft) by the
+Free Software Foundation.  If the Document does not specify a version
+number of this License, you may choose any version ever published (not
+as a draft) by the Free Software Foundation.  If the Document
+specifies that a proxy can decide which future versions of this
+License can be used, that proxy's public statement of acceptance of a
+version permanently authorizes you to choose that version for the
+Document.
+
+11. RELICENSING
+
+"Massive Multiauthor Collaboration Site" (or "MMC Site") means any
+World Wide Web server that publishes copyrightable works and also
+provides prominent facilities for anybody to edit those works.  A
+public wiki that anybody can edit is an example of such a server.  A
+"Massive Multiauthor Collaboration" (or "MMC") contained in the site
+means any set of copyrightable works thus published on the MMC site.
+
+"CC-BY-SA" means the Creative Commons Attribution-Share Alike 3.0
+license published by Creative Commons Corporation, a not-for-profit
+corporation with a principal place of business in San Francisco,
+California, as well as future copyleft versions of that license
+published by that same organization.
+
+"Incorporate" means to publish or republish a Document, in whole or in
+part, as part of another Document.
+
+An MMC is "eligible for relicensing" if it is licensed under this
+License, and if all works that were first published under this License
+somewhere other than this MMC, and subsequently incorporated in whole or
+in part into the MMC, (1) had no cover texts or invariant sections, and
+(2) were thus incorporated prior to November 1, 2008.
+
+The operator of an MMC Site may republish an MMC contained in the site
+under CC-BY-SA on the same site at any time before August 1, 2009,
+provided the MMC is eligible for relicensing.
+
+
+ADDENDUM: How to use this License for your documents
+
+To use this License in a document you have written, include a copy of
+the License in the document and put the following copyright and
+license notices just after the title page:
+
+    Copyright (c)  YEAR  YOUR NAME.
+    Permission is granted to copy, distribute and/or modify this document
+    under the terms of the GNU Free Documentation License, Version 1.3
+    or any later version published by the Free Software Foundation;
+    with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.
+    A copy of the license is included in the section entitled "GNU
+    Free Documentation License".
+
+If you have Invariant Sections, Front-Cover Texts and Back-Cover Texts,
+replace the "with...Texts." line with this:
+
+    with the Invariant Sections being LIST THEIR TITLES, with the
+    Front-Cover Texts being LIST, and with the Back-Cover Texts being LIST.
+
+If you have Invariant Sections without Cover Texts, or some other
+combination of the three, merge those two alternatives to suit the
+situation.
+
+If your document contains nontrivial examples of program code, we
+recommend releasing these examples in parallel under your choice of
+free software license, such as the GNU General Public License,
+to permit their use in free software.
+</pre>
+#+end_export
+
+#+html: <!--
+
+* Indices
+:PROPERTIES:
+:END:
+
+** Function index
+:PROPERTIES:
+:INDEX: fn
+:END:
+
+** Variable index
+:PROPERTIES:
+:INDEX: vr
+:END:
+
+** Concept index
+:PROPERTIES:
+:INDEX: cp
+:END:
+
+#+html: -->
+
+* Footnotes
