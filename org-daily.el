@@ -820,7 +820,9 @@ See the user variables `org-daily-refile-should-schedule',
 `org-daily-refile-should-keep-original' and
 `org-daily-refile-landing-pos' for customizing the behavior of the
 command."
-  (interactive (list (org-read-date nil nil nil "Refile to")))
+  (interactive (list
+                (let ((org-overriding-default-time (org-daily-day-at-point-as-ts)))
+                  (org-read-date nil nil nil "Refile to"))))
   (org-daily--catch-invalid-refile)
   (let ((org-overriding-default-time (org-daily-day-at-point-as-ts))
         (should-move (or (eq org-daily-refile-landing-pos 'new)
