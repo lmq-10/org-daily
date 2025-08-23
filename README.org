@@ -906,8 +906,12 @@ Alternatively, you can use the :vc keyword from use-package.
 :CUSTOM_ID: manual-installation
 :END:
 
-Assuming your Emacs files are found in =~/.emacs.d/=, execute the
-following commands in a shell prompt:
+This package depends on the =iso-date= library, which you can install
+from GNU ELPA.
+
+Once you have the dependency installed, and assuming your Emacs files
+are found in =~/.emacs.d/=, execute the following commands in a shell
+prompt:
 
 #+begin_src sh
 cd ~/.emacs.d

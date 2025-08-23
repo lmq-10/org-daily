@@ -6,8 +6,8 @@
 ;; Maintainer: Lucas Quintana <lmq10@protonmail.com>
 ;; URL: https://github.com/lmq-10/org-daily
 ;; Created: 2025-08-03
-;; Version: 1.0.0
-;; Package-Requires: ((emacs "29.1") (org "9.6") (transient "0.8"))
+;; Version: 1.1.0
+;; Package-Requires: ((emacs "29.1") (iso-date "1.2") (org "9.6") (transient "0.8"))
 
 ;; This file is not part of GNU Emacs.
 
@@ -66,6 +66,7 @@
 ;;; Code:
 
 (require 'calendar)
+(require 'iso-date)
 (require 'org)
 (require 'org-datetree)
 (require 'org-element)
@@ -251,15 +252,6 @@ Only ever let-bind this.")
 
 ;;;; Constants
 
-(defconst org-daily-iso-date-regexp
-  (rx (group (= 4 digit)) "-"
-      (group (= 2 digit)) "-"
-      (group (= 2 digit)))
-  "Regexp matching an ISO 8601 date string.
-That means a date formatted as YYYY-MM-DD.
-
-The year, month and day are captured.")
-
 (defconst org-daily-year-month-regexp
   (rx (group (= 4 digit)) "-" (group (= 2 digit)))
   "Regexp matching a partial ISO 8601 date string (year and month).
@@ -293,7 +285,7 @@ First group contains the heading sans stars, the second only the date.")
   (rx bol "*** "
       ;; See above
       (optional (one-or-more printing))
-      (group (group (regexp org-daily-iso-date-regexp)) (one-or-more printing)))
+      (group (group (regexp iso-date-regexp)) (one-or-more printing)))
   "Regexp matching a day heading.
 First group contains the heading sans stars, the second only the date.")
 
@@ -366,13 +358,13 @@ that no matter what."
       (when-let* ((path (and (not (org-before-first-heading-p))
                              (org-get-outline-path :with-self)))
                   (date (nth 2 path))
-                  (_ (string-match org-daily-iso-date-regexp date)))
+                  (_ (string-match iso-date-regexp date)))
         (match-string 0 date)))))
 
 (defun org-daily-day-at-point-as-ts ()
   "Return `org-daily-day-at-point' as an Emacs timestamp."
   (when-let* ((day (org-daily-day-at-point)))
-    (org-daily-iso-to-internal day)))
+    (iso-date-to-internal day)))
 
 (defun org-daily-focus-heading ()
   "Reveal current heading and narrow to it."
@@ -395,7 +387,7 @@ that no matter what."
   "Return non-nil if the entry for tomorrow is focused."
   (and (org-daily-visiting-days-file-p)
        (buffer-narrowed-p)
-       (equal (org-daily-day-at-point) (org-daily-return-iso-date :day +1))))
+       (equal (org-daily-day-at-point) (iso-date :day +1))))
 
 (defun org-daily-in-date-heading ()
   "Return non-nil if current heading refers to a year, month or day.
@@ -408,99 +400,6 @@ a heading created by `org-datetree'."
         (or (looking-at org-daily-day-heading-regexp)
             (looking-at org-daily-month-heading-regexp)
             (looking-at org-daily-year-heading-regexp))))))
-
-;;;; ISO Date utils
-
-;; I made these available as a separate library too.
-;;
-;; https://github.com/lmq-10/iso-date
-
-(defun org-daily-iso-to-calendar (date)
-  "Convert an ISO 8601 DATE to calendar internal format."
-  (when (string-match org-daily-iso-date-regexp date)
-    (let ((day   (match-string 3 date))
-          (month (match-string 2 date))
-          (year  (match-string 1 date)))
-      (mapcar #'string-to-number (list month day year)))))
-
-(defun org-daily-iso-to-internal (date)
-  "Convert an ISO 8601 DATE string to an Emacs timestamp."
-  (when (string-match-p org-daily-iso-date-regexp date)
-    (date-to-time date)))
-
-(defun org-daily-calendar-to-iso (date)
-  "Convert DATE from calendar internal format to ISO 8601 format."
-  (let ((day   (number-to-string (nth 1 date)))
-        (month (number-to-string (nth 0 date)))
-        (year  (number-to-string (nth 2 date))))
-    (concat year "-" (string-pad month 2 ?0 t) "-" (string-pad day 2 ?0 t))))
-
-(defun org-daily-return-iso-date (&rest keywords)
-  "Return an ISO 8601 date string for current day.
-
-KEYWORDS allow to modify the date returned.  They are passed to
-`make-decoded-time'.  For instance, the following returns a date string
-for yesterday:
-
-\(org-daily-return-iso-date :day -1)
-
-A special keyword named START-DATE allows to set the starting day which
-will be modified by the rest of KEYWORDS.  It should be an ISO 8601 date
-string.  For instance, to add a month to a specific date:
-
-\(org-daily-return-iso-date :start-date \"2000-12-18\" :month +1)"
-  (format-time-string
-   "%F"
-   (when keywords
-     (encode-time
-      (decoded-time-add
-       (if-let* ((date (plist-get keywords :start-date)))
-           (progn
-             (setq keywords (remove :start-date (remove date keywords)))
-             (parse-time-string date))
-         (decode-time))
-       (apply #'make-decoded-time keywords))))))
-
-(defun org-daily-do-time-shift (shift date-start)
-  "Apply SHIFT to DATE-START, return result.
-
-SHIFT is a string in the form [NUMBER][PERIOD] such as 2w.  Available
-periods are d (day), w (week), m (month) and y (year).
-
-DATE-START should be an ISO 8601 date string.  Returned date is also in
-that format."
-  (when (string-match
-         (rx
-          (group (optional (or "+" "-")) (one-or-more digit))
-          (group (any letter)))
-         shift)
-    (let ((num (string-to-number (match-string 1 shift)))
-          (unit (match-string 2 shift)))
-      (org-daily-return-iso-date
-       :start-date date-start
-       (pcase unit
-         ("d" :day)
-         ("w" (and (setq num (* 7 num)) :day))
-         ("m" :month)
-         ("y" :year)
-         (_ (error "Unsupported time unit")))
-       num))))
-
-(defun org-daily-list-days-between (start end)
-  "Return a list with all dates between START and END.
-START and END should be ISO 8601 date strings.
-
-Returned dates are also in that format."
-  (let* ((time1 (org-daily-iso-to-internal start))
-         (time2 (org-daily-iso-to-internal end))
-         (pointer time1)
-         (one-day (make-decoded-time :day 1))
-         dates)
-    (while (not (equal pointer time2))
-      (push (format-time-string "%F" pointer) dates)
-      (setq pointer (encode-time (decoded-time-add (decode-time pointer) one-day))))
-    (push (format-time-string "%F" time2) dates)
-    (reverse dates)))
 
 ;;;; Refiling
 
@@ -526,7 +425,7 @@ subtree is pasted at DATE."
      (and (not keep) (org-cut-subtree))
      (with-current-buffer (find-file-noselect (org-daily-file))
        (org-with-wide-buffer
-        (org-datetree-file-entry-under txt (org-daily-iso-to-calendar date))
+        (org-datetree-file-entry-under txt (iso-date-to-calendar date))
         (run-hook-with-args 'org-daily-after-refile-functions date))))))
 
 (defun org-daily--catch-invalid-refile ()
@@ -585,7 +484,7 @@ See `org-daily-refile-should-schedule' for details."
                            (org-daily-focus-heading)
                            (y-or-n-p "Schedule to this day?"))
                        org-daily-refile-should-schedule))
-                  (org-overriding-default-time (org-daily-iso-to-internal date)))
+                  (org-overriding-default-time (iso-date-to-internal date)))
         (org-schedule nil date)))))
 
 (defun org-daily-annotate-file (name)
@@ -613,7 +512,7 @@ If ADD-INDICATOR is non-nil, also append the indicator set in
    (concat
     (format-time-string
      format
-     (org-daily-iso-to-internal date))
+     (iso-date-to-internal date))
     (if (and add-indicator
              org-daily-today-indicator
              (equal date (format-time-string "%F")))
@@ -725,7 +624,7 @@ Create it if it doesn't exist.
 DATE must be a string in ISO format.  Interactively, it is read using
 `org-read-date'."
   (interactive (list (org-read-date)))
-  (if-let* ((cal-date (org-daily-iso-to-calendar date)))
+  (if-let* ((cal-date (iso-date-to-calendar date)))
       (progn
         (pop-to-buffer-same-window (find-file-noselect (org-daily-file)))
         (widen)
@@ -741,19 +640,19 @@ DATE must be a string in ISO format.  Interactively, it is read using
   "Jump to today entry in Org Daily file.
 Create it if it doesn't exist."
   (interactive)
-  (org-daily-jump-to-day (org-daily-return-iso-date)))
+  (org-daily-jump-to-day (iso-date)))
 
 (defun org-daily-tomorrow ()
   "Jump to tomorrow entry in Org Daily file.
 Create it if it doesn't exist."
   (interactive)
-  (org-daily-jump-to-day (org-daily-return-iso-date :day +1)))
+  (org-daily-jump-to-day (iso-date :day +1)))
 
 (defun org-daily-yesterday ()
   "Jump to yesterday entry in Org Daily file.
 Create it if it doesn't exist."
   (interactive)
-  (org-daily-jump-to-day (org-daily-return-iso-date :day -1)))
+  (org-daily-jump-to-day (iso-date :day -1)))
 
 (defun org-daily-show-range (start end)
   "Narrow to days between START and END.
@@ -763,13 +662,13 @@ Interactively, START and END are picked using `org-read-date'."
   (interactive (list
                 (org-read-date nil nil nil "{Start}")
                 (org-read-date nil nil nil "{End}")))
-  (let ((days (org-daily-list-days-between start end))
+  (let ((days (iso-date-list-dates-between start end))
         (buffer (find-file-noselect (org-daily-file)))
         beacon)
     (with-current-buffer buffer
       (widen)
       (dolist (day days)
-        (org-datetree-find-date-create (org-daily-iso-to-calendar day))
+        (org-datetree-find-date-create (iso-date-to-calendar day))
         (when (equal day (car days))
           (setq beacon (point))))
       (org-end-of-subtree t t)
@@ -784,20 +683,20 @@ Interactively, START and END are picked using `org-read-date'."
   "Go to the entry for next day in Org Daily file (probably this file)."
   (interactive)
   (when-let* ((day (org-daily-day-at-point)))
-    (org-daily-jump-to-day (org-daily-return-iso-date :start-date day :day +1))))
+    (org-daily-jump-to-day (iso-date :start-date day :day +1))))
 
 (defun org-daily-previous-day ()
   "Go to the entry for previous day in Org Daily file (probably this file)."
   (interactive)
   (when-let* ((day (org-daily-day-at-point)))
-    (org-daily-jump-to-day (org-daily-return-iso-date :start-date day :day -1))))
+    (org-daily-jump-to-day (iso-date :start-date day :day -1))))
 
 (defun org-daily-show-week ()
   "Narrow to dates for current week in Org Daily file."
   (interactive)
   (let* ((index-today (calendar-day-of-week (calendar-current-date)))
-         (date-start (org-daily-return-iso-date :day (- (mod (- index-today calendar-week-start-day) 7))))
-         (date-end (org-daily-return-iso-date :start-date date-start :day +6)))
+         (date-start (iso-date :day (- (mod (- index-today calendar-week-start-day) 7))))
+         (date-end (iso-date :start-date date-start :day +6)))
     (org-daily-show-range date-start date-end)))
 
 (defun org-daily-show-month ()
@@ -847,9 +746,8 @@ command."
 Heading is copied to STARTING-DATE, and then to every date following
 SPAN until END-AT.
 
-SPAN is a string in the form [NUMBER][PERIOD] such as 2w (for copying
-it every two weeks) or 1d (for copying every day).  See
-`org-daily-do-time-shift'.
+SPAN is a string in the form [NUMBER][PERIOD] such as 2w (for copying it
+every two weeks) or 1d (for copying every day).  See `iso-date-shift'.
 
 With a prefix argument, instead of prompting for a date for END-AT,
 prompt for a number: the command will create that many copies.
@@ -857,7 +755,7 @@ prompt for a number: the command will create that many copies.
 When called from Lisp, END-AT can be a number or a date string."
   (interactive
    (let* ((start (org-read-date nil nil nil "Start refiling at"))
-          (org-overriding-default-time (org-daily-iso-to-internal start)))
+          (org-overriding-default-time (iso-date-to-internal start)))
      (list
       start
       (if current-prefix-arg
@@ -866,7 +764,7 @@ When called from Lisp, END-AT can be a number or a date string."
       (read-from-minibuffer "Refile every... (e.g. 2d to refile every two days): "))))
   (org-daily--catch-invalid-refile)
   (when (equal starting-date (org-daily-day-at-point))
-    (setq starting-date (org-daily-do-time-shift span starting-date)))
+    (setq starting-date (iso-date-shift span starting-date)))
   (let ((this-date starting-date)
         (should-keep (if (eq org-daily-refile-should-keep-original 'ask)
                          (y-or-n-p "Preserve original?")
@@ -881,7 +779,7 @@ When called from Lisp, END-AT can be a number or a date string."
     (catch :done
       (while t
         (org-daily--refile-subr this-date :keep)
-        (setq this-date (org-daily-do-time-shift span this-date))
+        (setq this-date (iso-date-shift span this-date))
         (setq n (1+ n))
         (cond ((numberp end-at)
                (when (>= n end-at)
@@ -936,7 +834,7 @@ Date format is defined by `org-daily-custom-date-formats'."
   (interactive)
   (unless (derived-mode-p 'calendar-mode)
     (user-error "Not in calendar buffer"))
-  (let ((date (org-daily-calendar-to-iso (calendar-cursor-to-date t))))
+  (let ((date (iso-date-from-calendar (calendar-cursor-to-date t))))
     (with-selected-window (previous-window)
       (org-daily-jump-to-day date))))
 
@@ -961,7 +859,7 @@ Date format is given by `org-daily-custom-date-formats'."
           (concat
            (format-time-string
             (cdr org-daily-custom-date-formats)
-            (org-daily-iso-to-internal date))
+            (iso-date-to-internal date))
            (if (equal date (format-time-string "%F"))
                org-daily-today-indicator
              ""))))))))

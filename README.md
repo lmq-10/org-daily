@@ -67,10 +67,13 @@ So, are you ready to live your days with `org-daily`?
 
 ## Installation
 
-The minimum Emacs version supported is 29.1.  The package has no
-dependencies besides built-in libraries.
+The minimum Emacs version supported is 29.1.  The package depends on
+the [iso-date](https://github.com/lmq-10/iso-date) library (also made
+by me), which you can install from GNU ELPA.  It has no other
+dependencies.
 
-Install from source by evaluating the following code:
+You can install `org-daily` from source by evaluating the following
+code:
 
 ```elisp
 (package-vc-install
